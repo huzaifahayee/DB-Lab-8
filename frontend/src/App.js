@@ -348,14 +348,19 @@ function Dashboard({ user, onLogout }) {
 // ============================================================================
 
 function App() {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const savedUser = window.localStorage.getItem('rozgar-user');
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
 
     const handleLogin = (userData) => {
         setUser(userData);
+        window.localStorage.setItem('rozgar-user', JSON.stringify(userData));
     };
 
     const handleLogout = () => {
         setUser(null);
+        window.localStorage.removeItem('rozgar-user');
     };
 
     return (
