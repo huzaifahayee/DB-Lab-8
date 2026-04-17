@@ -1,0 +1,28 @@
+{
+  "name": "rozgar-pakistan-backend",
+  "version": "1.0.0",
+  "description": "Lab 08: Rozgar Pakistan E-Resume Builder - Node.js Backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "mssql",
+    "api",
+    "backend"
+  ],
+  "author": "FAST-NUCES Database Lab",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "msnodesqlv8": "^5.1.7",
+    "mssql": "^10.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
