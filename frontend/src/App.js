@@ -145,12 +145,27 @@ function ExperienceTable({ data, onDelete, onEdit }) {
 // ADD EXPERIENCE FORM COMPONENT (Task 8)
 // ============================================================================
 
-function AddExperienceForm({ userId, onSave }) {
+function AddExperienceForm({ userId, editingExperience, onSave, onCancelEdit }) {
     const [jobTitle, setJobTitle] = useState('');
     const [companyName, setCompanyName] = useState('');
     const [yearsWorked, setYearsWorked] = useState('');
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (editingExperience) {
+            setJobTitle(editingExperience.JobTitle);
+            setCompanyName(editingExperience.CompanyName);
+            setYearsWorked(String(editingExperience.YearsWorked));
+            setMessage('Editing selected experience');
+            return;
+        }
+
+        setJobTitle('');
+        setCompanyName('');
+        setYearsWorked('');
+        setMessage('');
+    }, [editingExperience]);
 
     // handleSave function (Task 8)
     const handleSave = async () => {
@@ -163,14 +178,20 @@ function AddExperienceForm({ userId, onSave }) {
         setMessage('');
         
         try {
-            const response = await fetch('http://localhost:5000/api/addExp', {
-                method: 'POST',
+            const isEditing = Boolean(editingExperience);
+            const response = await fetch(
+                isEditing
+                    ? `http://localhost:5000/api/updateExp/${editingExperience.ExpID}`
+                    : 'http://localhost:5000/api/addExp',
+                {
+                method: isEditing ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     UserID: userId,
                     JobTitle: jobTitle,
                     CompanyName: companyName,
-                    YearsWorked: parseInt(yearsWorked)
+                    YearsWorked: parseInt(yearsWorked, 10),
+                    IsCurrentJob: editingExperience?.IsCurrentJob ?? false
                 })
             });
             
@@ -178,10 +199,17 @@ function AddExperienceForm({ userId, onSave }) {
             console.log('Save result:', result);
             
             if (result.success) {
-                setMessage('Experience added successfully!');
+                setMessage(
+                    editingExperience
+                        ? 'Experience updated successfully!'
+                        : 'Experience added successfully!'
+                );
                 setJobTitle('');
                 setCompanyName('');
                 setYearsWorked('');
+                if (editingExperience) {
+                    onCancelEdit();
+                }
                 onSave();  // Refresh the list
             } else {
                 setMessage('Error: ' + result.message);
@@ -195,7 +223,7 @@ function AddExperienceForm({ userId, onSave }) {
 
     return (
         <div className="add-form-container">
-            <h3>Add New Experience</h3>
+            <h3>{editingExperience ? 'Update Experience' : 'Add New Experience'}</h3>
             <div className="add-form">
                 <input
                     type="text"
@@ -218,8 +246,17 @@ function AddExperienceForm({ userId, onSave }) {
                     max="50"
                 />
                 <button onClick={handleSave} disabled={isSubmitting} className="btn-add">
-                    {isSubmitting ? 'Saving...' : 'Add Experience'}
+                    {isSubmitting
+                        ? 'Saving...'
+                        : editingExperience
+                            ? 'Update Experience'
+                            : 'Add Experience'}
                 </button>
+                {editingExperience && (
+                    <button onClick={onCancelEdit} disabled={isSubmitting} className="btn-refresh">
+                        Cancel
+                    </button>
+                )}
             </div>
             {message && <p className={`message ${message.includes('Error') ? 'error' : 'success'}`}>{message}</p>}
         </div>
@@ -233,6 +270,7 @@ function AddExperienceForm({ userId, onSave }) {
 function Dashboard({ user, onLogout }) {
     const [experience, setExperience] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [editingExperience, setEditingExperience] = useState(null);
 
     // useEffect to fetch data (Task 7)
     useEffect(() => {
@@ -267,41 +305,15 @@ function Dashboard({ user, onLogout }) {
             
             if (result.success) {
                 fetchExperience();  // Refresh list
+                setEditingExperience(null);
             }
         } catch (error) {
             console.error('Delete error:', error);
         }
     };
 
-    const handleEdit = async (job) => {
-        const newTitle = prompt('Enter new job title:', job.JobTitle);
-        if (!newTitle) return;
-        
-        const newCompany = prompt('Enter new company:', job.CompanyName);
-        if (!newCompany) return;
-        
-        const newYears = prompt('Enter years worked:', job.YearsWorked);
-        if (!newYears) return;
-        
-        try {
-            const response = await fetch(`http://localhost:5000/api/updateExp/${job.ExpID}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    JobTitle: newTitle,
-                    CompanyName: newCompany,
-                    YearsWorked: parseInt(newYears),
-                    IsCurrentJob: job.IsCurrentJob
-                })
-            });
-            
-            const result = await response.json();
-            if (result.success) {
-                fetchExperience();
-            }
-        } catch (error) {
-            console.error('Edit error:', error);
-        }
+    const handleEdit = (job) => {
+        setEditingExperience(job);
     };
 
     return (
@@ -335,7 +347,9 @@ function Dashboard({ user, onLogout }) {
                 <div className="card">
                     <AddExperienceForm 
                         userId={user.UserID}
+                        editingExperience={editingExperience}
                         onSave={fetchExperience}
+                        onCancelEdit={() => setEditingExperience(null)}
                     />
                 </div>
             </main>
